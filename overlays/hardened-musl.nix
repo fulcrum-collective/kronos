@@ -7,15 +7,15 @@ self: super: {
         let
           musl-src = self.fetchurl {
             url = "https://musl.libc.org/releases/musl-1.2.5.tar.gz";
-            sha256 = "sha256-qaEYu+hNh2TaDqDSizqz+uhHf8fkCF2QECuFlvx8deQ=";
+            hash = "sha512-1yc2n707vkimm3zix6zz72a1ykx2lq6c5dkz2n8q5fdf1dyl5l8mpw7b7j87ma3rlfhddiycs4m5zabg3qsbf59l73nkk93761zgdvv";
           };
           musl-sig = self.fetchurl {
             url = "https://musl.libc.org/releases/musl-1.2.5.tar.gz.asc";
-            sha256 = "sha256-rE7i3zV4l33p3mBq7iSgJcA/Kz4dJqU33lXXu2VAWmo=";
+            hash = "sha512-0lr478mn3rdfq5dsdxzs72aiv2ll81194d3c6k8r6qpnslr9h37lsn4zwb5bwb41gh8bjxird9nz7mjv3figjk8ylzx7fsan42vzbn8";
           };
           musl-pubkey = self.fetchurl {
             url = "https://musl.libc.org/musl.pub";
-            sha256 = "sha256-vSVsPZzzmYjT4aWvzsRk8n4e55oTQCzLckD1g2b5GfE=";
+            hash = "sha512-20sd9jrmbp3gxx6aj3jf0nsx7hfshfhwrghd4dxjdp9vs4vzbpf5lpxla3s5j8vv9qk7rvv0r4haqkghlqlhhncagl6zs5g0mf3ljgm";
           };
         in
         self.stdenv.mkDerivation {
@@ -71,6 +71,8 @@ self: super: {
 
     in
     {
+      version = "1.2.5";
+
       # Use the PGP-verified source.
       src = verified_src;
 
