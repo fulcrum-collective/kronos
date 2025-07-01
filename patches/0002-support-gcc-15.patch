@@ -1,0 +1,52 @@
+From 1d7fc7ffe0f8068a32ab2ba33df7515e7bad3f5f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Christian=20G=C3=B6ttsche?= <cgzones@googlemail.com>
+Date: Wed, 26 Mar 2025 10:21:16 +0100
+Subject: [PATCH] support GCC15
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+GCC 15 starts warning about non NUL-terminated string literals:
+
+    chacha.c:44:31: error: initializer-string for array of ‘char’ truncates NUL terminator but destination lacks ‘nonstring’ attribute (17 chars into 16 available) [-Werror=unterminated-string-initialization]
+       44 | static const char sigma[16] = "expand 32-byte k";
+          |                               ^~~~~~~~~~~~~~~~~~
+---
+ chacha.c | 2 +-
+ util.h   | 7 +++++++
+ 2 files changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/chacha.c b/chacha.c
+index 541a7ac..ca52fe5 100644
+--- a/chacha.c
++++ b/chacha.c
+@@ -41,7 +41,7 @@ static const unsigned rounds = 8;
+     a = PLUS(a, b); d = ROTATE(XOR(d, a), 8); \
+     c = PLUS(c, d); b = ROTATE(XOR(b, c), 7);
+ 
+-static const char sigma[16] = "expand 32-byte k";
++static const char sigma[16] NONSTRING = "expand 32-byte k";
+ 
+ void chacha_keysetup(chacha_ctx *x, const u8 *k) {
+     x->input[0] = U8TO32_LITTLE(sigma + 0);
+diff --git a/util.h b/util.h
+index 6b1a390..72c28d8 100644
+--- a/util.h
++++ b/util.h
+@@ -32,6 +32,13 @@
+ #define STRINGIFY(s) #s
+ #define ALIAS(f) __attribute__((alias(STRINGIFY(f))))
+ 
++// supported since GCC 15
++#if __has_attribute (nonstring)
++#  define NONSTRING __attribute__ ((nonstring))
++#else
++#  define NONSTRING
++#endif
++
+ typedef uint8_t u8;
+ typedef uint16_t u16;
+ typedef uint32_t u32;
+-- 
+2.50.0
+
