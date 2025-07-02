@@ -7,15 +7,15 @@ self: super: {
         let
           musl-src = self.fetchurl {
             url = "https://musl.libc.org/releases/musl-1.2.5.tar.gz";
-            hash = "sha512-1yc2n707vkimm3zix6zz72a1ykx2lq6c5dkz2n8q5fdf1dyl5l8mpw7b7j87ma3rlfhddiycs4m5zabg3qsbf59l73nkk93761zgdvv";
+            hash = "sha512-e7f3gzkjzWnHoam4pfF4S/1SiWY+tgYdzUPVg+RZh9+KaKG+BddcwciKP1thBlPRpw9KnP9Nj3/UGuc+4FjBfA==";
           };
           musl-sig = self.fetchurl {
             url = "https://musl.libc.org/releases/musl-1.2.5.tar.gz.asc";
-            hash = "sha512-0lr478mn3rdfq5dsdxzs72aiv2ll81194d3c6k8r6qpnslr9h37lsn4zwb5bwb41gh8bjxird9nz7mjv3figjk8ylzx7fsan42vzbn8";
+            hash = "sha512-yK6/BbFKu9M/9WjKF93Ysp5vU8uxy4XgC2TxVRb/xGp6BkyZanuxyWgaNhpJISBKxY5KHP17061g1/KwFR2SKQ==";
           };
           musl-pubkey = self.fetchurl {
             url = "https://musl.libc.org/musl.pub";
-            hash = "sha512-20sd9jrmbp3gxx6aj3jf0nsx7hfshfhwrghd4dxjdp9vs4vzbpf5lpxla3s5j8vv9qk7rvv0r4haqkghlqlhhncagl6zs5g0mf3ljgm";
+            hash = "sha512-9Uk6XAWv6G/oU8xCSDGFb2IFSQZ75zNx2hvJooei/dLi7vqb6J1uk72RBl/m0EHt4OnaAieHVKb3N+6qWaamgQ==";
           };
         in
         self.stdenv.mkDerivation {

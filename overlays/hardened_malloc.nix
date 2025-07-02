@@ -1,26 +1,19 @@
-# overlays/hardened_malloc.nix
-#
-# Overlay for hardened_malloc.
-# Provides a package based on a stable release tag, with SSH signature
-# verification of the tag and selective application of local, audited patches.
+{ flakeRoot }:
 
 self: super: {
-  hardened_malloc = super.hardened_malloc.overrideAttrs (oldAttrs: {
-    # Defines the target stable release tag to build upon.
+  hardened_malloc = super.graphene-hardened-malloc.overrideAttrs (oldAttrs: {
     version = "13";
 
-    # Fetches the repository source via Git, checks out the specified tag,
-    # and verifies its SSH signature in a post-fetch hook before use.
     src = self.fetchgit {
       url = "https://github.com/GrapheneOS/hardened_malloc.git";
       rev = "13";
-      hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # Replace with actual hash for tag 13
+      hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
       postFetch =
         let
           allowedSignersFile = self.fetchurl {
             url = "https://releases.grapheneos.org/allowed_signers";
-            hash = "sha512-28gbkyk3xf2nh0rdk8xd9q83bw6y690xh63sik3i841f4b29j6161ys9iffmxjrl6gqc3315135b4cgsaj0mjiw7rxxm0qa735f0smg"; # Replace with actual hash
+            hash = "sha512-r2rgyjgKg9p7PjzKCqTSj5FVRihhDIafoVn26lxM2gcTjExiERcIimNGPQzsIBlv+BoIp9bRbBlAK1wf08/1kA==";
           };
         in
         ''
@@ -31,26 +24,23 @@ self: super: {
         '';
     };
 
-    # Applies a list of local, audited patches to the fetched source.
+
     patches = [
-      ./../patches/0001-support-gcc-15.patch
-      ./../patches/0002-update-libdivide-to-5.2.0.patch
+      "${flakeRoot}/patches/0001-support-gcc-15.patch"
+      "${flakeRoot}/patches/0002-update-libdivide-to-5.2.0.patch"
     ];
 
-    # Passes high-level configuration options to the Makefile.
     makeFlags = [
       "CONFIG_NATIVE=false"
       "CONFIG_CXX_ALLOCATOR=false"
     ];
 
-    # Custom build phase to compile only the standard variant and its static counterpart.
     buildPhase = ''
       runHook preBuild
       make $makeFlags ''${enableParallelBuilding:+-j$NIX_BUILD_CORES} all static
       runHook postBuild
     '';
 
-    # Custom install phase to place artifacts into their respective outputs.
     installPhase = ''
       runHook preInstall
 
@@ -71,11 +61,8 @@ self: super: {
       runHook postInstall
     '';
 
-    # Defines the separate outputs for the package (libraries, headers).
     outputs = [ "out" "dev" ];
-
-    # Clears the passthru attribute, removing the default Nixpkgs test suite
-    # for a leaner and more focused package derivation.
     passthru = {};
   });
 }
+
