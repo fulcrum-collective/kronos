@@ -3,6 +3,11 @@
 name = "kronos"
 version = "0.1.0"
 edition = "2021"
+authors = ["GC (freedomNothingnessAlike) <gcunfixable@protonmail.com>"]
+description = "A modern, reliable, and secure task scheduler."
+readme = "README.md"
+repository = "https://codeberg.org/freedomNothingnessAlike/kronos"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 toml = "0.8"
