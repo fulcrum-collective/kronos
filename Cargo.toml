@@ -1,10 +1,17 @@
 # Cargo.toml
 [package]
 name = "kronos"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
+authors = ["GC (freedomNothingnessAlike) <gcunfixable@protonmail.com>"]
+description = "A modern, reliable, and secure task scheduler."
+readme = "README.md"
+repository = "https://codeberg.org/freedomNothingnessAlike/kronos"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 toml = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 chrono = "0.4"
+log = "0.4"
+env_logger = "0.11"
