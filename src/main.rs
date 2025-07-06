@@ -1,20 +1,77 @@
 // src/main.rs
+mod task;
 
-mod alloc;
-
-#[global_allocator]
-static GLOBAL: alloc::HardenedAlloc = alloc::HardenedAlloc;
+use crate::task::Task;
+use chrono::{Local, NaiveDateTime};
+use std::fs;
+use std::process::Command;
+use std::thread;
+use std::time::Duration;
 
 fn main() {
-    // 從這一刻起，你的程式中所有需要「堆分配」的標準操作，
-    // 例如創建一個 Vec、String、Box，或者使用 println! (內部也可能需要分配記憶體)，
-    // 都會自動通過我們註冊的 GLOBAL 配置器，最終呼叫到 hardened_malloc 的實現。
+    println!("[Kronos] Reading task configuration...");
 
-    println!("Kronos starting up, using hardened_malloc.");
+    let config_path = "task.toml";
+    let config_content = match fs::read_to_string(config_path) {
+        Ok(content) => content,
+        Err(e) => {
+            eprintln!("Error reading config file '{}': {}", config_path, e);
+            return;
+        }
+    };
 
-    // 讓我們來觸發一次堆分配
-    let numbers: Vec<i32> = (0..10).collect();
-    println!("A vector allocated on the hardened heap: {:?}", numbers);
+    let task: Task = match toml::from_str(&config_content) {
+        Ok(task) => task,
+        Err(e) => {
+            eprintln!("Error parsing TOML: {}", e);
+            return;
+        }
+    };
 
-    // 你可以繼續編寫你的 kronos 核心邏輯...
+    println!("[Kronos] Task loaded: '{}'", task.job.description);
+
+    let trigger_time =
+    match NaiveDateTime::parse_from_str(&task.trigger.on_calendar, "%Y-%m-%d %H:%M:%S") {
+        Ok(time) => time,
+        Err(e) => {
+            eprintln!("Error parsing 'on_calendar' time: {}", e);
+            return;
+        }
+    };
+
+    println!("[Kronos] Task scheduled to run at: {}", trigger_time);
+
+    loop {
+        let now = Local::now().naive_local();
+        if now >= trigger_time {
+            println!("[Kronos] Trigger time reached! Executing command...");
+
+            let output = Command::new("sh")
+            .arg("-c")
+            .arg(&task.job.command)
+            .output();
+
+            match output {
+                Ok(out) => {
+                    println!("[Kronos] Command finished.");
+
+                    if !out.stdout.is_empty() {
+                        println!("--- stdout ---\n{}", String::from_utf8_lossy(&out.stdout));
+                    }
+                    if !out.stderr.is_empty() {
+                        eprintln!("--- stderr ---\n{}", String::from_utf8_lossy(&out.stderr));
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to execute command: {}", e);
+                }
+            }
+
+            break;
+        }
+
+        thread::sleep(Duration::from_secs(1));
+    }
+
+    println!("[Kronos] Task complete. Shutting down.");
 }

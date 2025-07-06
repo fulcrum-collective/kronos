@@ -1,0 +1,7 @@
+# task.toml
+[job]
+description = "A test job for kronos v0.1"
+command = "echo 'Task executed at $(date)'"
+
+[trigger]
+on_calendar = "2025-07-06 13:12:00"

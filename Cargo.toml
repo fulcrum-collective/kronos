@@ -1,44 +1,10 @@
-# This is the main manifest file for the Rust package manager, Cargo.
-# It contains metadata and dependencies for the 'kronos' project.
-
+# Cargo.toml
 [package]
 name = "kronos"
 version = "0.1.0"
 edition = "2021"
-authors = ["GC (freedomNothingnessAlike) <gcunfixable@protonmail.com>"]
-description = "A modern, reliable, and secure task scheduler."
-readme = "README.md"
-repository = "https://codeberg.org/freedomNothingnessAlike/kronos"
-license = "MIT OR Apache-2.0"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-# Specifies a custom build script, which is necessary for linking native libraries.
-# In our case, this is used to link against hardened_malloc.
-build = "build.rs"
 
 [dependencies]
-# The libc crate provides raw C-compatible type definitions and function bindings,
-# which are essential for interacting with the custom allocator and other low-level APIs.
-libc = "0.2"
-
-
-# For logging and diagnostics.
-# log = "0.4"
-# env_logger = "0.11"
-
-# For parsing command-line arguments in your 'kroctl' tool.
-# clap = { version = "4.5", features = ["derive"] }
-
-# For parsing TOML configuration files for tasks.
-# toml = "0.8"
-# serde = { version = "1.0", features = ["derive"] }
-
-# For handling asynchronous operations, if needed in the future.
-# tokio = { version = "1", features = ["full"] }
-
-
-# Build-time dependencies are only used by the build.rs script.
-[build-dependencies]
-# The build script itself does not have any external crate dependencies at this moment,
-# but if it needed to (e.g., using a C-code-building crate), they would go here.
+toml = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+chrono = "0.4"
