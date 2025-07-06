@@ -1,4 +1,5 @@
 // src/main.rs
+
 mod task;
 
 use crate::task::Task;
@@ -15,7 +16,7 @@ fn main() {
     let config_content = match fs::read_to_string(config_path) {
         Ok(content) => content,
         Err(e) => {
-            eprintln!("Error reading config file '{}': {}", config_path, e);
+            eprintln!("Error reading config file '{config_path}': {e}");
             return;
         }
     };
@@ -23,33 +24,31 @@ fn main() {
     let task: Task = match toml::from_str(&config_content) {
         Ok(task) => task,
         Err(e) => {
-            eprintln!("Error parsing TOML: {}", e);
+            eprintln!("Error parsing TOML: {e}");
             return;
         }
     };
 
-    println!("[Kronos] Task loaded: '{}'", task.job.description);
+    let description = &task.job.description;
+    println!("[Kronos] Task loaded: '{description}'");
 
     let trigger_time =
-    match NaiveDateTime::parse_from_str(&task.trigger.on_calendar, "%Y-%m-%d %H:%M:%S") {
-        Ok(time) => time,
-        Err(e) => {
-            eprintln!("Error parsing 'on_calendar' time: {}", e);
-            return;
-        }
-    };
+        match NaiveDateTime::parse_from_str(&task.trigger.on_calendar, "%Y-%m-%d %H:%M:%S") {
+            Ok(time) => time,
+            Err(e) => {
+                eprintln!("Error parsing 'on_calendar' time: {e}");
+                return;
+            }
+        };
 
-    println!("[Kronos] Task scheduled to run at: {}", trigger_time);
+    println!("[Kronos] Task scheduled to run at: {trigger_time}");
 
     loop {
         let now = Local::now().naive_local();
         if now >= trigger_time {
             println!("[Kronos] Trigger time reached! Executing command...");
 
-            let output = Command::new("sh")
-            .arg("-c")
-            .arg(&task.job.command)
-            .output();
+            let output = Command::new("sh").arg("-c").arg(&task.job.command).output();
 
             match output {
                 Ok(out) => {
@@ -63,7 +62,7 @@ fn main() {
                     }
                 }
                 Err(e) => {
-                    eprintln!("Failed to execute command: {}", e);
+                    eprintln!("Failed to execute command: {e}");
                 }
             }
 

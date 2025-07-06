@@ -1,0 +1,5 @@
+# rust-toolchain.toml
+
+[toolchain]
+channel = "stable"
+host = "x86_64-unknown-linux-musl"
