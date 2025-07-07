@@ -1,53 +1,54 @@
 # .github/workflows/rust-check.yml
+name: Code Quality Checks
 
-# Workflow name
-name: Rust Code Quality and Tests
-
+# Defines workflow triggers.
 on:
-
   push:
     branches: [ "dev" ]
-
   pull_request:
     branches: [ "main" ]
-
-  schedule:
-    - cron: '0 * * * *'
-
-  # Allows manual triggering from the GitHub Actions UI.
   workflow_dispatch:
 
+# Defines the jobs to be executed.
 jobs:
-  # Checks formatting, lints, and runs tests on the standard toolchain.
+  # Defines a job for standard quality checks.
   quality_checks:
+    # Specifies the runner environment.
     runs-on: ubuntu-latest
+    # Defines the steps for this job.
     steps:
+      # Checks out the repository's source code.
       - name: Checkout repository
         uses: actions/checkout@v4
+      # Installs the Rust toolchain.
       - name: Install Rust toolchain (stable)
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
+      # Checks code formatting.
       - name: Check formatting
         run: cargo fmt --check
+      # Runs static analysis lints.
       - name: Run Clippy
         run: cargo clippy -- -D warnings
-      - name: Run unit tests
+      # Runs unit and integration tests.
+      - name: Run tests
         run: cargo test
 
-  # Runs tests with the AddressSanitizer to find memory-related bugs.
-  # This depends on the basic checks passing first.
+  # Defines a job for memory safety checks using sanitizers.
   sanitizer_checks:
     runs-on: ubuntu-latest
     needs: [quality_checks]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      # Installs the nightly Rust toolchain, required for sanitizers.
       - name: Install Rust toolchain (nightly)
-        uses: dtolnay/rust-toolchain@nightly
-      - name: Run tests with AddressSanitizer (ASan)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly
+      # Runs tests with AddressSanitizer (ASan) enabled.
+      - name: Run tests with AddressSanitizer
         env:
           RUSTFLAGS: "-Z sanitizer=address"
-          RUSTDOCFLAGS: "-Z sanitizer=address"
-        # The target must be gnu for ASan to work.
         run: cargo test --target x86_64-unknown-linux-gnu
