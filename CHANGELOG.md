@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 This release focuses on establishing an automated quality assurance pipeline and improving general code hygiene.
 
 ### Added
-- **Continuous Integration**: Introduced a CI workflow using GitHub Actions. It automatically checks code formatting (`fmt`), static analysis lints (`clippy`), and runs tests on every pull request to the `develop` branch.
+- **Continuous Integration**: Introduced a CI workflow using GitHub Actions. It automatically checks code formatting (`fmt`), static analysis lints (`clippy`), and runs tests on every pull request to the `dev` branch.
 
 ### Removed
 - **Unused Files**: Removed unused source files from the codebase to improve clarity and maintainability.
