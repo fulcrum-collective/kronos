@@ -1,0 +1,39 @@
+# .github/workflows/rust-release.yml
+name: "Build Production Release"
+
+on:
+  # Allows manual triggering from the GitHub Actions UI.
+  workflow_dispatch:
+    # You can define inputs if you want, e.g., to specify a version
+    # inputs:
+    #   version:
+    #     description: 'The version to build (e.g., v0.2.2)'
+    #     required: true
+
+jobs:
+  build-release-binary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Install Nix"
+        # Using the standard, community-trusted action for installing Nix
+        uses: cachix/install-nix-action@v26
+        with:
+          # Enables Flakes and the new nix command
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: "Build hardened binary with Nix"
+        # This command executes our entire, complex, hardened build process
+        run: nix build
+
+      - name: "Upload artifact"
+        # This action takes the build result and makes it downloadable
+        uses: actions/upload-artifact@v4
+        with:
+          # The name of the artifact in the GitHub UI
+          name: kronos-binary-x86_64-linux
+          # The path to the file to upload. 'result' is the symlink created by `nix build`.
+          path: ./result/bin/kronos
