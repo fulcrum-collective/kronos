@@ -1,0 +1,51 @@
+# .github/workflows/rust.yml
+
+# Workflow name
+name: Rust Code Quality and Tests
+
+on:
+
+  push:
+    branches: [ "dev" ]
+
+  pull_request:
+    branches: [ "main" ]
+
+  schedule:
+    - cron: '0 * * * *'
+
+  # Allows manual triggering from the GitHub Actions UI.
+  workflow_dispatch:
+
+# Defines the jobs that run as part of the workflow.
+jobs:
+  # Defines a job with the ID 'quality_checks'.
+  quality_checks:
+    # Specifies the runner environment for the job.
+    runs-on: ubuntu-latest
+
+    # Defines the sequence of steps within the job.
+    steps:
+      # Step 1: Checks out the repository's code onto the runner.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Sets up the Rust toolchain with clippy and rustfmt.
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+          override: true
+
+      # Step 3: Run cargo fmt to check code formatting.
+      - name: Check formatting
+        run: cargo fmt --check
+
+      # Step 4: Run cargo clippy for static analysis and style lints.
+      - name: Run linter checks
+        run: cargo clippy -- -D warnings
+
+      # Step 5 (Future Addition): Run tests.
+      # - name: Run tests
+      #   run: cargo test
