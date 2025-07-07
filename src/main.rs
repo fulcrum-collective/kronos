@@ -1,63 +1,62 @@
 // src/main.rs
 
-// Declares the task module, which will be loaded from src/task.rs.
+// Declares the `task` module.
 mod task;
 
-// Imports necessary items from other modules and external crates.
+// Imports items from modules and external crates.
 use crate::task::{Job, Task};
-use chrono::{Duration as ChronoDuration, Local, NaiveDateTime, Timelike};
+use chrono::{DateTime, Duration as ChronoDuration, Local, NaiveDateTime, TimeZone, Timelike, Utc};
 use log::{error, info, warn};
 use std::{fs, path::Path, process::Command, thread, time::Duration as StdDuration};
 
-// A struct to hold a scheduled job's details and its next run time.
+// A data structure holding job details and its next execution time.
 #[derive(Debug, Clone)]
 struct ScheduledJob {
     job: Job,
     trigger: task::Trigger,
-    next_run_at: NaiveDateTime,
+    next_run_at: DateTime<Utc>,
 }
 
 fn main() {
-    // Initializes the logger. Log level can be controlled via RUST_LOG environment variable.
+    // Initializes the global logger.
     env_logger::init();
 
-    info!("Kronos v0.2 starting up...");
+    info!("Kronos starting up...");
 
-    // Defines the directory for task configuration files.
+    // Defines the directory path for task configuration files.
     let tasks_dir = "/etc/kronos/tasks.d";
     if !Path::new(tasks_dir).exists() {
         info!("'{tasks_dir}' directory not found. Creating it.");
         if let Err(e) = fs::create_dir_all(tasks_dir) {
-            // Log the error and exit gracefully if the essential directory cannot be created.
             error!("Failed to create tasks directory '{tasks_dir}': {e}");
-            // Exits with a non-zero status code to indicate failure.
             std::process::exit(1);
         }
     }
 
+    // Loads and schedules tasks from the configuration directory.
     let mut scheduled_jobs = load_and_schedule_tasks(tasks_dir);
 
     if scheduled_jobs.is_empty() {
         warn!("No tasks found. Kronos will idle.");
     }
 
-    // The main daemon loop, responsible for checking and executing tasks.
+    // The main daemon loop for task scheduling and execution.
     loop {
-        // Sorts jobs by their next run time to find the soonest one.
+        // Sorts the job list by the next execution time.
         scheduled_jobs.sort_by_key(|j| j.next_run_at);
 
-        // Gets the current time, truncated to second precision for consistency.
-        let now = Local::now().naive_local().with_nanosecond(0).unwrap();
+        // Gets the current time in UTC, truncated to second precision.
+        let now_utc = Utc::now().with_nanosecond(0).unwrap();
 
-        // Processes all jobs that are due to run at or before the current time.
+        // Iterates through and processes all jobs that are due.
         while let Some(next_job) = scheduled_jobs.first() {
-            if now >= next_job.next_run_at {
+            if now_utc >= next_job.next_run_at {
                 let mut job_to_run = scheduled_jobs.remove(0);
                 let description = &job_to_run.job.description;
                 let next_run_at = &job_to_run.next_run_at;
                 info!("Trigger time reached! Executing: '{description}' (Scheduled for: {next_run_at})");
 
-                // Executes the command in a separate thread to avoid blocking the scheduler.
+                // Spawns a new thread to execute the command non-blockingly.
                 let job_clone = job_to_run.job.clone();
                 thread::spawn(move || {
                     execute_command(&job_clone);
@@ -80,9 +79,9 @@ fn main() {
             }
         }
 
-        // Determines the duration to sleep before the next check.
+        // Determines the sleep duration until the next scheduled job.
         let sleep_duration = if let Some(next_job) = scheduled_jobs.first() {
-            let duration_to_next = next_job.next_run_at.signed_duration_since(now);
+            let duration_to_next = next_job.next_run_at.signed_duration_since(now_utc);
             if duration_to_next > ChronoDuration::zero() {
                 duration_to_next
                     .to_std()
@@ -94,21 +93,22 @@ fn main() {
             StdDuration::from_secs(3600)
         };
 
+        // Pauses the loop, with a maximum cap to ensure responsiveness.
         let final_sleep = std::cmp::min(sleep_duration, StdDuration::from_secs(60));
         thread::sleep(final_sleep);
     }
 }
 
-// Loads all .toml files from a directory, parses them, and calculates their initial run times.
+// Loads and parses all .toml files from a directory into a vector of ScheduledJob.
 fn load_and_schedule_tasks(dir: &str) -> Vec<ScheduledJob> {
     let mut jobs = Vec::new();
-    let now = Local::now().naive_local().with_nanosecond(0).unwrap();
+    let now_utc = Utc::now().with_nanosecond(0).unwrap();
 
     let entries = match fs::read_dir(dir) {
         Ok(entries) => entries,
         Err(e) => {
             error!("Failed to read tasks directory '{dir}': {e}");
-            return jobs; // Return empty vector
+            return jobs;
         }
     };
 
@@ -117,7 +117,6 @@ fn load_and_schedule_tasks(dir: &str) -> Vec<ScheduledJob> {
             Ok(e) => e.path(),
             Err(_) => continue,
         };
-
         if !path.is_file() || path.extension().and_then(|s| s.to_str()) != Some("toml") {
             continue;
         }
@@ -130,7 +129,6 @@ fn load_and_schedule_tasks(dir: &str) -> Vec<ScheduledJob> {
                 continue;
             }
         };
-
         let task: Task = match toml::from_str(&content) {
             Ok(t) => t,
             Err(e) => {
@@ -138,52 +136,47 @@ fn load_and_schedule_tasks(dir: &str) -> Vec<ScheduledJob> {
                 continue;
             }
         };
-        // Determine the next run time based on the trigger type.
-        let next_run_at = if let Some(cal_str) = &task.trigger.on_calendar {
-            match NaiveDateTime::parse_from_str(cal_str, "%Y-%m-%d %H:%M:%S") {
-                Ok(run_time) => {
-                    // Check if the scheduled time for a one-time task is in the past.
-                    if run_time < now {
-                        warn!("Skipping past one-time task in {path:?}: scheduled for {run_time}");
-                        continue; // Skip directly to the next file in the loop.
-                    }
-                    run_time
-                }
-                Err(_) => {
-                    warn!("Invalid on_calendar format in {path:?}: \"{cal_str}\". Skipping.");
-                    continue;
-                }
-            }
-        } else if let Some(every_str) = &task.trigger.every {
-            // For recurring tasks, the first run is always calculated from now.
-            match parse_duration(every_str) {
-                Some(duration) => now + duration,
-                None => {
-                    warn!(
-                        "Invalid 'every' duration format in {path:?}: \"{every_str}\". Skipping."
-                    );
-                    continue;
-                }
-            }
-        } else {
-            warn!(
-                "Task in {path:?} has no valid trigger field ('on_calendar' or 'every'). Skipping."
-            );
-            continue;
-        };
 
-        // If all checks pass, schedule the job.
-        jobs.push(ScheduledJob {
-            job: task.job.clone(),
-            trigger: task.trigger.clone(),
-            next_run_at,
-        });
+        // Determines the next run time and converts it to a UTC timestamp.
+        let next_run_at_utc: Option<DateTime<Utc>> =
+            if let Some(cal_str) = &task.trigger.on_calendar {
+                match NaiveDateTime::parse_from_str(cal_str, "%Y-%m-%d %H:%M:%S") {
+                    Ok(naive_time) => Local
+                        .from_local_datetime(&naive_time)
+                        .single()
+                        .map(|local_time| local_time.with_timezone(&Utc)),
+                    Err(_) => {
+                        warn!("Invalid on_calendar format in {path:?}: \"{cal_str}\"");
+                        None
+                    }
+                }
+            } else if let Some(every_str) = &task.trigger.every {
+                parse_duration(every_str).map(|d| now_utc + d)
+            } else {
+                None
+            };
+
+        if let Some(run_time_utc) = next_run_at_utc {
+            // Skips one-time tasks scheduled in the past.
+            if task.trigger.on_calendar.is_some() && run_time_utc < now_utc {
+                warn!("Skipping past one-time task in {path:?}: scheduled for {run_time_utc}");
+                continue;
+            }
+
+            jobs.push(ScheduledJob {
+                job: task.job.clone(),
+                trigger: task.trigger.clone(),
+                next_run_at: run_time_utc,
+            });
+        } else {
+            warn!("Task in {path:?} has no valid trigger. Skipping.");
+        }
     }
 
     jobs
 }
 
-// Executes a command in a shell and logs its standard output and standard error.
+// Executes a command in a shell and logs its output.
 fn execute_command(job: &Job) {
     let output = Command::new("sh").arg("-c").arg(&job.command).output();
     let description = &job.description;
@@ -209,7 +202,7 @@ fn execute_command(job: &Job) {
     }
 }
 
-// A simple parser for duration strings like "1h30m10s".
+// Parses a duration string (e.g., "1h30m10s") into a `ChronoDuration`.
 fn parse_duration(s: &str) -> Option<ChronoDuration> {
     let mut total_seconds = 0i64;
     let mut current_number = String::new();
