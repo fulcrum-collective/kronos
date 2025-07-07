@@ -104,54 +104,82 @@ fn load_and_schedule_tasks(dir: &str) -> Vec<ScheduledJob> {
     let mut jobs = Vec::new();
     let now = Local::now().naive_local().with_nanosecond(0).unwrap();
 
-    match fs::read_dir(dir) {
-        Ok(entries) => {
-            for entry in entries {
-                let path = match entry {
-                    Ok(e) => e.path(),
-                    Err(_) => continue,
-                };
+    let entries = match fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(e) => {
+            error!("Failed to read tasks directory '{dir}': {e}");
+            return jobs; // Return empty vector
+        }
+    };
 
-                if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("toml") {
-                    info!("Loading task from: {path:?}");
-                    let content = match fs::read_to_string(&path) {
-                        Ok(c) => c,
-                        Err(e) => {
-                            error!("Failed to read task file {path:?}: {e}");
-                            continue;
-                        }
-                    };
+    for entry in entries {
+        let path = match entry {
+            Ok(e) => e.path(),
+            Err(_) => continue,
+        };
 
-                    let task: Task = match toml::from_str(&content) {
-                        Ok(t) => t,
-                        Err(e) => {
-                            error!("Failed to parse task file {path:?}: {e}");
-                            continue;
-                        }
-                    };
+        if !path.is_file() || path.extension().and_then(|s| s.to_str()) != Some("toml") {
+            continue;
+        }
 
-                    let next_run_at = if let Some(cal_str) = &task.trigger.on_calendar {
-                        NaiveDateTime::parse_from_str(cal_str, "%Y-%m-%d %H:%M:%S").ok()
-                    } else if let Some(every_str) = &task.trigger.every {
-                        parse_duration(every_str).map(|d| now + d)
-                    } else {
-                        None
-                    };
+        info!("Loading task from: {path:?}");
+        let content = match fs::read_to_string(&path) {
+            Ok(c) => c,
+            Err(e) => {
+                error!("Failed to read task file {path:?}: {e}");
+                continue;
+            }
+        };
 
-                    if let Some(run_time) = next_run_at {
-                        jobs.push(ScheduledJob {
-                            job: task.job.clone(),
-                            trigger: task.trigger.clone(),
-                            next_run_at: run_time,
-                        });
-                    } else {
-                        warn!("Task in {path:?} has no valid trigger. Skipping.");
+        let task: Task = match toml::from_str(&content) {
+            Ok(t) => t,
+            Err(e) => {
+                error!("Failed to parse task file {path:?}: {e}");
+                continue;
+            }
+        };
+        // Determine the next run time based on the trigger type.
+        let next_run_at = if let Some(cal_str) = &task.trigger.on_calendar {
+            match NaiveDateTime::parse_from_str(cal_str, "%Y-%m-%d %H:%M:%S") {
+                Ok(run_time) => {
+                    // Check if the scheduled time for a one-time task is in the past.
+                    if run_time < now {
+                        warn!("Skipping past one-time task in {path:?}: scheduled for {run_time}");
+                        continue; // Skip directly to the next file in the loop.
                     }
+                    run_time
+                }
+                Err(_) => {
+                    warn!("Invalid on_calendar format in {path:?}: \"{cal_str}\". Skipping.");
+                    continue;
                 }
             }
-        }
-        Err(e) => error!("Failed to read tasks directory '{dir}': {e}"),
+        } else if let Some(every_str) = &task.trigger.every {
+            // For recurring tasks, the first run is always calculated from now.
+            match parse_duration(every_str) {
+                Some(duration) => now + duration,
+                None => {
+                    warn!(
+                        "Invalid 'every' duration format in {path:?}: \"{every_str}\". Skipping."
+                    );
+                    continue;
+                }
+            }
+        } else {
+            warn!(
+                "Task in {path:?} has no valid trigger field ('on_calendar' or 'every'). Skipping."
+            );
+            continue;
+        };
+
+        // If all checks pass, schedule the job.
+        jobs.push(ScheduledJob {
+            job: task.job.clone(),
+            trigger: task.trigger.clone(),
+            next_run_at,
+        });
     }
+
     jobs
 }
 
