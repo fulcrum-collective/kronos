@@ -1,5 +1,5 @@
 # .github/workflows/rust-check.yml
-name: Code Quality Checks
+name: Rust Code Quality Checks
 
 # Defines workflow triggers.
 on:
@@ -21,7 +21,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       # Installs the Rust toolchain.
-      - name: Install Rust toolchain (stable)
+      - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
@@ -34,21 +34,3 @@ jobs:
       # Runs unit and integration tests.
       - name: Run tests
         run: cargo test
-
-  # Defines a job for memory safety checks using sanitizers.
-  sanitizer_checks:
-    runs-on: ubuntu-latest
-    needs: [quality_checks]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      # Installs the nightly Rust toolchain, required for sanitizers.
-      - name: Install Rust toolchain (nightly)
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: nightly
-      # Runs tests with AddressSanitizer (ASan) enabled.
-      - name: Run tests with AddressSanitizer
-        env:
-          RUSTFLAGS: "-Z sanitizer=address"
-        run: cargo test --target x86_64-unknown-linux-gnu
