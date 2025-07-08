@@ -1,0 +1,63 @@
+# .woodpecker/rust-check.yaml
+
+# Defines when this pipeline should run.
+# It triggers on pushes and pull requests to the 'dev' branch.
+when:
+  branch: dev
+  event: pull_request
+
+# Defines the sequence of steps in the pipeline.
+# Steps run sequentially by default.
+steps:
+  # Step 1: Clones the Git repository.
+  # This uses a standard plugin provided by Woodpecker.
+  - name: clone
+    image: woodpeckerci/plugin-git@sha256:2b34ecbbfd2f318405bd5d2765a750f6b02dae5dfb8707e16c943b9faeef5fc5
+
+  # Step 2: Runs standard quality checks on the STABLE toolchain.
+  - name: quality-checks
+    # Pulls a Docker image that has a stable version of Rust pre-installed.
+    image: _/rust@sha256:b18203be0f58e16fe47250bf98bbe83c61bbfa97a0f5a94cebf34605bb000137
+    commands:
+      - rustc --version
+      - cargo --version
+      - cargo fmt --check
+      - cargo clippy -- -D warnings
+
+  # Step 3: Runs sanitizer tests on the NIGHTLY toolchain.
+  - name: sanitizer-checks
+    # Starts from the official Arch Linux base image.
+    image: _/archlinux@sha256:7beca11cc5203d0d7ee2e1202637f2600233b9e6195209f503d42ba356d414e3
+    commands:
+      - pacman-key --init
+      # Refreshes the package database and installs essential build tools and git.
+      # `base-devel` includes gcc, make, etc., which might be needed.
+      # `--noconfirm` is used for non-interactive execution in CI.
+      - pacman -Syu --noconfirm git curl
+
+      # Downloads and installs rustup in a non-interactive way.
+      # The `-y` flag accepts all default options.
+      - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+      # Adds the cargo bin directory to the current shell's PATH.
+      - export PATH="$HOME/.cargo/bin:$PATH"
+
+      # Installs the nightly toolchain.
+      - rustup install nightly
+
+      # Sets the nightly toolchain as the default for this step.
+      - rustup default nightly
+
+      # Verifies the installed toolchain version.
+      - rustc --version
+      - cargo --version
+
+      # Sets the necessary flags and runs the tests with sanitizers.
+      - export RUSTFLAGS="-Z sanitizer=address -C sanitizer=undefined"
+      - cargo test --target nightly-x86_64-unknown-linux-gnu
+
+  # Step 4
+  - name: unit_and_integration_tests
+    image: _/rust@sha256:b18203be0f58e16fe47250bf98bbe83c61bbfa97a0f5a94cebf34605bb000137
+    commands:
+      - cargo test
