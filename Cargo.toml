@@ -9,6 +9,14 @@ readme = "README.md"
 repository = "https://codeberg.org/freedomNothingnessAlike/kronos"
 license = "MIT OR Apache-2.0"
 
+[lib]
+name = "kronos"
+path = "src/lib.rs"
+
+[[bin]]
+name = "kronos"
+path = "src/main.rs"
+
 [dependencies]
 toml = "0.8"
 serde = { version = "1.0", features = ["derive"] }

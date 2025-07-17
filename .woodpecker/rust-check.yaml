@@ -54,3 +54,16 @@ steps:
     image: rust@sha256:b18203be0f58e16fe47250bf98bbe83c61bbfa97a0f5a94cebf34605bb000137
     commands:
       - cargo test
+
+  # Step 5
+  - name: cargo-fuzz test
+    image: alpine@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
+    commands:
+      - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile minimal --default-toolchain nightly -y --no-modify-path
+      - export PATH="$HOME/.cargo/bin:$PATH"
+      - rustup default nightly
+      - rustc --version
+      - cargo --version
+      - cargo install cargo-fuzz
+      - cargo fuzz run ​​--sanitizer none fuzz_parse_duration
+      - cargo fuzz run ​​--sanitizer none fuzz_toml_parser
