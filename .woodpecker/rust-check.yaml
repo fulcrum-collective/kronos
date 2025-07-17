@@ -59,9 +59,10 @@ steps:
   - name: cargo-fuzz test
     image: alpine@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
     commands:
-      - apk add --no-cache curl
+      - apk add --no-cache curl gcc
       - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile minimal --default-toolchain nightly -y --no-modify-path
       - export PATH="$HOME/.cargo/bin:$PATH"
+      - rustup override set nightly
       - rustup default nightly
       - rustc +nightly --version
       - cargo +nightly --version
