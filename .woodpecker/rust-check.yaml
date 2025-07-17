@@ -20,5 +20,5 @@ steps:
       - rustc +nightly --version
       - cargo +nightly --version
       - cargo install cargo-fuzz
-      - cargo +nightly fuzz run ​​--sanitizer none fuzz_parse_duration
-      - cargo +nightly fuzz run ​​--sanitizer none fuzz_toml_parser
+      - cargo-fuzz run fuzz_toml_parser --sanitizer none
+      - cargo-fuzz run fuzz_toml_parser --sanitizer none
