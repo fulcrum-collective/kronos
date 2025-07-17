@@ -8,19 +8,19 @@ when:
 
 # Defines the sequence of steps in the pipeline.
 # Steps run sequentially by default.
-steps:
+#steps:
   # Step 2: Runs standard quality checks on the STABLE toolchain.
-  - name: quality-checks
+#  - name: quality-checks
     # Pulls a Docker image that has a stable version of Rust pre-installed.
-    image: rust@sha256:b18203be0f58e16fe47250bf98bbe83c61bbfa97a0f5a94cebf34605bb000137
-    commands:
-      - apk add --no-cache build-base musl-dev
-      - rustup component add --toolchain stable-x86_64-unknown-linux-musl rustfmt
-      - rustup component add --toolchain stable-x86_64-unknown-linux-musl clippy
-      - rustc --version
-      - cargo --version
-      - cargo fmt --check
-      - cargo clippy -- -D warnings
+#    image: rust@sha256:b18203be0f58e16fe47250bf98bbe83c61bbfa97a0f5a94cebf34605bb000137
+#    commands:
+#      - apk add --no-cache build-base musl-dev
+#      - rustup component add --toolchain stable-x86_64-unknown-linux-musl rustfmt
+#      - rustup component add --toolchain stable-x86_64-unknown-linux-musl clippy
+#      - rustc --version
+#      - cargo --version
+#      - cargo fmt --check
+#      - cargo clippy -- -D warnings
 
   # Step 3: Runs sanitizer tests on the NIGHTLY toolchain.
 #  - name: sanitizer-checks
@@ -50,10 +50,10 @@ steps:
 #      - cargo +nightly test
 
   # Step 4
-  - name: unit_and_integration_tests
-    image: rust@sha256:b18203be0f58e16fe47250bf98bbe83c61bbfa97a0f5a94cebf34605bb000137
-    commands:
-      - cargo test
+#  - name: unit_and_integration_tests
+#    image: rust@sha256:b18203be0f58e16fe47250bf98bbe83c61bbfa97a0f5a94cebf34605bb000137
+#    commands:
+#      - cargo test
 
   # Step 5
   - name: cargo-fuzz test

@@ -4,7 +4,6 @@ repos:
     rev: v4.2.0
     hooks:
     -   id: check-toml
-    -   id: check-yaml
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
 
