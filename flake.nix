@@ -1,25 +1,29 @@
 {
   description = "A development shell for the Kronos project";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-  inputs.flake-utils.url = "github:numtide/flake-utils";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
 
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
-      in
-      {
-        # Defines a standard development environment.
+        pkgs = import nixpkgs { inherit system; };
+      in {
         devShells.default = pkgs.mkShell {
-          # Provides the necessary tools for development.
-          packages = with pkgs; [
-            # A stable Rust toolchain
-            stable.rust-toolchain
-            # Additional useful tools
-            cargo-watch
-            clippy
-          ];
+          buildInputs = [ pkgs.rustup ];
+
+          shellHook = ''
+            if ! command -v rustc >/dev/null; then
+              echo "Rust not found, installing via rustup..."
+              rustup install stable
+            fi
+            rustup default stable
+            echo "Rust version:"
+            rustc --version
+          '';
         };
-      });
+      }
+    );
 }
