@@ -14,7 +14,7 @@ steps:
     # Pulls a Docker image that has a stable version of Rust pre-installed.
     image: alpine@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
     commands:
-      - apk add --no-cache bash curl shadow xz
+      - apk add --no-cache bash coreutils curl shadow xz
       - sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
       - nix --extra-experimental-features 'nix-command flakes' develop .#test --command rustc --version
       - nix --extra-experimental-features 'nix-command flakes' develop .#test --command cargo --version
@@ -52,7 +52,7 @@ steps:
   - name: unit_and_integration_tests
     image: alpine@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
     commands:
-      - apk add --no-cache bash curl shadow xz
+      - apk add --no-cache bash coreutils curl shadow xz
       - sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon
       - nix --extra-experimental-features 'nix-command flakes' develop .#test --command rustc --version
       - nix --extra-experimental-features 'nix-command flakes' develop .#test --command cargo --version
