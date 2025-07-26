@@ -1,5 +1,5 @@
 {
-  description = "A development shell for the XXX project";
+  description = "A development shell for the Kronos project";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -46,6 +46,15 @@
               echo "Rust version:"
               rustc --version
             '';
+          };
+
+          test = pkgs.mkShell {
+            packages = with pkgs; [
+              cargo
+              clippy
+              rustc
+              rustfmt
+            ];
           };
         };
       });
